@@ -54,9 +54,8 @@ export default function Home() {
       <header className="flex items-start justify-between gap-2">
         <div>
           <h1 className="text-xl font-bold">이번 주 암장 혼잡도</h1>
-          <p className="text-xs opacity-60">
-            평일 {settings.weekdayStart} · 주말 {settings.weekendStart} 이후 정모 인원 · {week ? scrapedLabel(week.lastScrapeAt) : '불러오는 중…'}
-          </p>
+          <p className="text-xs opacity-60">평일 {settings.weekdayStart} · 주말 {settings.weekendStart} 이후 정모 인원</p>
+          <p className="text-xs opacity-60">{week ? scrapedLabel(week.lastScrapeAt) : '불러오는 중…'}</p>
         </div>
         <nav className="flex shrink-0 gap-1 text-sm">
           <button type="button" onClick={() => setPanel(panel === 'gyms' ? 'none' : 'gyms')} className="rounded-full border border-black/15 px-3 py-1 dark:border-white/20">
