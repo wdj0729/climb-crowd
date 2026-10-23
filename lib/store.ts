@@ -17,7 +17,8 @@ export async function upsertGroup(db: Db, g: RawGroup): Promise<void> {
 
 /**
  * Upserts the group's meetups as seen now, and deletes the group's future meetups that are no longer
- * listed (cancelled). Only call this for a group whose page was read successfully.
+ * listed (cancelled). Only call this for a group whose page was read successfully. When the source only
+ * showed part of the list, pass `until` (the last time it covers) so later meetups are left alone.
  */
 export async function syncGroupMeetups(
   db: Db,
@@ -25,6 +26,7 @@ export async function syncGroupMeetups(
   groupExternalId: string,
   meetups: StoredMeetup[],
   now: Date,
+  until?: Date,
 ): Promise<{ upserted: number; removed: number }> {
   for (const m of meetups) {
     await db.query(
@@ -43,10 +45,22 @@ export async function syncGroupMeetups(
   const removed = await db.query(
     `delete from meetups
      where source = $1 and group_external_id = $2 and starts_at >= $3 and not (external_id = any($4::text[]))
+       and ($5::timestamptz is null or starts_at <= $5)
      returning external_id`,
-    [source, groupExternalId, now.toISOString(), meetups.map((m) => m.externalId)],
+    [source, groupExternalId, now.toISOString(), meetups.map((m) => m.externalId), until ? until.toISOString() : null],
   );
   return { upserted: meetups.length, removed: removed.length };
+}
+
+export async function listGroupsWithFutureMeetups(db: Db, source: Source, now: Date): Promise<{ externalId: string; url: string }[]> {
+  const rows = await db.query<{ external_id: string; url: string }>(
+    `select g.external_id, g.url from groups g
+     where g.source = $1 and exists (
+       select 1 from meetups m where m.source = g.source and m.group_external_id = g.external_id and m.starts_at >= $2)
+     order by g.external_id`,
+    [source, now.toISOString()],
+  );
+  return rows.map((r) => ({ externalId: r.external_id, url: r.url }));
 }
 
 interface WeekRow {

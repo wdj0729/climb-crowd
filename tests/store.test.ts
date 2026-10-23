@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { migrate, type Db } from '@/lib/db';
 import {
   addAlias, getExtraAliases, lastSuccessfulRunAt, listUnmatched, listWeekMeetups,
-  recordRun, rematchUnmatched, syncGroupMeetups, upsertGroup, type StoredMeetup,
+  listGroupsWithFutureMeetups, recordRun, rematchUnmatched, syncGroupMeetups, upsertGroup, type StoredMeetup,
 } from '@/lib/store';
 import { testDb } from './helpers/pglite';
 
@@ -79,5 +79,28 @@ describe('store', () => {
     await recordRun(db, { startedAt: t10, finishedAt: t10, ok: true, stats: {} });
     await recordRun(db, { startedAt: t11, finishedAt: t11, ok: false, stats: {} });
     expect(await lastSuccessfulRunAt(db)).toEqual(t10);
+  });
+});
+
+describe('store: partial lists and known groups', () => {
+  it('only deletes up to the given horizon when the source list is truncated', async () => {
+    const db = await testDb();
+    await upsertGroup(db, { source: 'daangn', externalId: 'g', name: 'G', url: 'u' });
+    const near = meetup({ source: 'daangn', externalId: 'near', groupExternalId: 'g', startsAt: new Date('2026-10-24T05:00:00Z') });
+    const gone = meetup({ source: 'daangn', externalId: 'gone', groupExternalId: 'g', startsAt: new Date('2026-10-25T05:00:00Z') });
+    const later = meetup({ source: 'daangn', externalId: 'later', groupExternalId: 'g', startsAt: new Date('2026-10-28T05:00:00Z') });
+    await syncGroupMeetups(db, 'daangn', 'g', [near, gone, later], NOW);
+    const res = await syncGroupMeetups(db, 'daangn', 'g', [near], NOW, new Date('2026-10-26T00:00:00Z'));
+    expect(res.removed).toBe(1);
+    expect((await listWeekMeetups(db, FROM, TO)).map((m) => m.id)).toEqual(['daangn:near', 'daangn:later']);
+  });
+
+  it('lists known groups that still have future meetups', async () => {
+    const db = await testDb();
+    await upsertGroup(db, { source: 'somoim', externalId: 'g1', name: 'A', url: 'https://www.somoim.co.kr/g1' });
+    await upsertGroup(db, { source: 'somoim', externalId: 'old', name: 'B', url: 'https://www.somoim.co.kr/old' });
+    await syncGroupMeetups(db, 'somoim', 'g1', [meetup()], NOW);
+    await syncGroupMeetups(db, 'somoim', 'old', [meetup({ externalId: 'p', groupExternalId: 'old', startsAt: new Date('2026-10-01T00:00:00Z') })], NOW);
+    expect(await listGroupsWithFutureMeetups(db, 'somoim', NOW)).toEqual([{ externalId: 'g1', url: 'https://www.somoim.co.kr/g1' }]);
   });
 });

@@ -3,7 +3,7 @@ import { listUnmatched, listWeekMeetups, syncGroupMeetups, upsertGroup } from '@
 import { daangnSearchUrl } from '@/scraper/daangn/parse';
 import regions from '@/scraper/daangn/regions.json';
 import type { Fetcher } from '@/scraper/http';
-import { runScrape } from '@/scraper/run';
+import { runOk, runScrape } from '@/scraper/run';
 import { SOMOIM_KEYWORDS, somoimSearchUrl } from '@/scraper/somoim/parse';
 import { fixture } from './helpers/fixture';
 import { testDb } from './helpers/pglite';
@@ -109,5 +109,62 @@ describe('runScrape', () => {
     const signallingDaangn: Fetcher = { async get(url) { daangnStarted(); return daangn.fetcher.get(url); } };
     const stats = await runScrape({ db, somoim: gatedSomoim, daangn: signallingDaangn, now: NOW, log: quiet, daangnSitemapGroups: async () => [] });
     expect(stats.find((x) => x.source === 'somoim')!.groupsOk).toBe(3);
+  });
+});
+
+describe('runScrape: discovery and failures', () => {
+  it('fetches a daangn group once when search and sitemap use different URL forms', async () => {
+    const db = await testDb();
+    const { somoim, daangn } = fakes();
+    const idOnly = 'https://www.daangn.com/kr/group/b7nnwocr7gc5/';
+    const searchWithIdUrl = daangnSearch.replace(JSON.stringify(DAANGN_GROUP).slice(1, -1), idOnly);
+    const d = fakeFetcher({ [daangnSearchUrl(regions[0])]: searchWithIdUrl, [idOnly]: fixture('daangn-group-climbing.html'), [DAANGN_GROUP]: fixture('daangn-group-climbing.html') });
+    await runScrape({ db, somoim: somoim.fetcher, daangn: d.fetcher, now: NOW, log: quiet, daangnSitemapGroups: async () => [DAANGN_GROUP] });
+    expect(d.calls.filter((c) => c.includes('b7nnwocr7gc5'))).toHaveLength(1);
+    void daangn;
+  });
+
+  it('revisits known groups that searches no longer list, and clears a group that is gone', async () => {
+    const db = await testDb();
+    const lost = 'bbbbbbbb-bbbb-cccc-dddd-eeeeeeeeeeee1';
+    await upsertGroup(db, { source: 'somoim', externalId: lost, name: 'lost', url: `https://www.somoim.co.kr/${lost}` });
+    await syncGroupMeetups(db, 'somoim', lost, [{
+      source: 'somoim', externalId: `${lost}:202610251900`, groupExternalId: lost, title: 't', startsAt: new Date('2026-10-25T10:00:00Z'),
+      participants: 3, capacity: null, placeText: null, placeLat: null, placeLon: null, url: 'u', gymId: 'theclimb-gangnam',
+    }], NOW);
+    const { daangn } = fakes();
+    const s = fakeFetcher({ [`https://www.somoim.co.kr/${lost}`]: Object.assign(new Error('HTTP 404'), { status: 404 }) });
+    await runScrape({ db, somoim: s.fetcher, daangn: daangn.fetcher, now: NOW, log: quiet, daangnSitemapGroups: async () => [] });
+    expect(s.calls).toContain(`https://www.somoim.co.kr/${lost}`);
+    const ids = (await listWeekMeetups(db, NOW, new Date('2026-11-05T00:00:00Z'))).map((m) => m.id);
+    expect(ids.some((id) => id.includes(lost))).toBe(false);
+  });
+
+  it('counts failed searches', async () => {
+    const db = await testDb();
+    const { daangn } = fakes();
+    const s = fakeFetcher({ [somoimSearchUrl(SOMOIM_KEYWORDS[0])]: new Error('timeout') });
+    const stats = await runScrape({ db, somoim: s.fetcher, daangn: daangn.fetcher, now: NOW, log: quiet, daangnSitemapGroups: async () => [] });
+    expect(stats.find((x) => x.source === 'somoim')!.searchesFailed).toBe(1);
+  });
+});
+
+describe('runOk', () => {
+  const base = { groupsFound: 10, groupsOk: 10, groupsFailed: 0, meetups: 5, matched: 2, removed: 0, truncatedGroups: 0, searches: 4, searchesFailed: 0 };
+
+  it('is ok when every source mostly worked', () => {
+    expect(runOk([{ ...base, source: 'somoim' }, { ...base, source: 'daangn' }])).toBe(true);
+  });
+
+  it('fails when one source failed even if the other was fine', () => {
+    expect(runOk([{ ...base, source: 'somoim', groupsOk: 0, groupsFailed: 10 }, { ...base, source: 'daangn', groupsFound: 40, groupsOk: 40 }])).toBe(false);
+  });
+
+  it('fails when most searches of a source failed', () => {
+    expect(runOk([{ ...base, source: 'somoim' }, { ...base, source: 'daangn', searches: 25, searchesFailed: 25 }])).toBe(false);
+  });
+
+  it('fails when a source found no groups', () => {
+    expect(runOk([{ ...base, source: 'somoim', groupsFound: 0, groupsOk: 0 }, { ...base, source: 'daangn' }])).toBe(false);
   });
 });
