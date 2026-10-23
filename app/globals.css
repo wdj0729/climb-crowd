@@ -22,3 +22,24 @@ body {
   color: var(--foreground);
   font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Pretendard', 'Noto Sans KR', sans-serif;
 }
+
+.gym-pin {
+  display: flex;
+  height: 34px;
+  width: 34px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.35);
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  cursor: pointer;
+}
+.gym-pin[data-level='busy'] { background: #e4572e; }
+.gym-pin[data-level='some'] { background: #f8a03a; }
+.gym-pin[data-level='none'] { background: #9ca3af; opacity: 0.85; }
+.gym-pin[data-favorite='true'] { border-color: #171717; }
+.gym-pin[data-selected='true'] { outline: 3px solid #2563eb; outline-offset: 1px; transform: scale(1.15); }
