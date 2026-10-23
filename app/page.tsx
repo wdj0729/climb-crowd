@@ -7,9 +7,9 @@ import { GymPicker } from '@/components/GymPicker';
 import { SettingsPanel } from '@/components/SettingsPanel';
 import { dayBuckets } from '@/lib/crowd';
 import { GYMS } from '@/lib/gyms/seed';
-import { DEFAULT_SETTINGS, loadSettings, saveSettings, type Settings } from '@/lib/settings';
 import { kstDateKey, kstMinutesOfDay } from '@/lib/time';
 import type { WeekResponse } from '@/lib/types';
+import { useSettings } from '@/lib/useSettings';
 
 const gymName = new Map(GYMS.map((g) => [g.id, g.name]));
 
@@ -24,27 +24,18 @@ function scrapedLabel(iso: string | null): string {
 type Panel = 'none' | 'gyms' | 'settings';
 
 export default function Home() {
-  const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
-  const [loaded, setLoaded] = useState(false);
+  const [settings, update, loaded] = useSettings();
   const [week, setWeek] = useState<WeekResponse | null>(null);
   const [error, setError] = useState(false);
   const [selected, setSelected] = useState<Record<string, string | null>>({});
   const [panel, setPanel] = useState<Panel>('none');
 
   useEffect(() => {
-    // localStorage is only readable in the browser, so settings load after the first render.
-    setSettings(loadSettings());
-    setLoaded(true);
     fetch('/api/week')
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
       .then(setWeek)
       .catch(() => setError(true));
   }, []);
-
-  function update(next: Settings) {
-    setSettings(next);
-    saveSettings(next);
-  }
 
   function toggleFavorite(id: string) {
     const favorites = settings.favorites.includes(id) ? settings.favorites.filter((f) => f !== id) : [...settings.favorites, id];
