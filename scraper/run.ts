@@ -1,10 +1,9 @@
-import { gunzipSync } from 'node:zlib';
 import { migrate, neonDb, type Db } from '@/lib/db';
 import { matchGym } from '@/lib/gyms/match';
 import { BRANDS, GYMS } from '@/lib/gyms/seed';
 import { getExtraAliases, recordRun, rematchUnmatched, syncGroupMeetups, upsertGroup } from '@/lib/store';
 import type { RawGroup, RawMeetup, Source } from '@/lib/types';
-import { daangnSearchUrl, parseDaangnGroup, parseDaangnSearch, type DaangnRegion } from './daangn/parse';
+import { daangnSearchUrl, parseDaangnGroup, parseDaangnSearch, parseGroupSitemap, type DaangnRegion } from './daangn/parse';
 import regions from './daangn/regions.json';
 import { BROWSER_UA, createFetcher, type Fetcher } from './http';
 import { parseSomoimGroup, parseSomoimSearch, SOMOIM_KEYWORDS, somoimSearchUrl } from './somoim/parse';
@@ -115,13 +114,10 @@ export async function runScrape(deps: Deps): Promise<ScrapeStats[]> {
   return stats;
 }
 
-const CLIMBING_SLUG = /클라이밍|볼더|암벽/;
-
 async function daangnSitemapGroups(): Promise<string[]> {
   const res = await fetch('https://www.daangn.com/kr/group/sitemap-detail.xml.gz', { headers: { 'User-Agent': BROWSER_UA } });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const xml = gunzipSync(Buffer.from(await res.arrayBuffer())).toString('utf-8');
-  return [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1].trim()).filter((u) => CLIMBING_SLUG.test(decodeURIComponent(u)));
+  return parseGroupSitemap(Buffer.from(await res.arrayBuffer()));
 }
 
 async function openDb(dry: boolean): Promise<Db> {

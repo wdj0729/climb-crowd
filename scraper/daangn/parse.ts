@@ -1,3 +1,4 @@
+import { gunzipSync } from 'node:zlib';
 import type { RawGroup, RawMeetup } from '@/lib/types';
 
 export interface DaangnRegion {
@@ -89,4 +90,13 @@ export function parseDaangnGroup(html: string, url: string): { group: RawGroup; 
     url,
   }));
   return { group, meetups };
+}
+
+const CLIMBING_SLUG = /클라이밍|볼더|암벽/;
+
+/** Climbing group URLs from the group sitemap; the body may arrive gzipped or already decoded. */
+export function parseGroupSitemap(body: Buffer): string[] {
+  const gzipped = body[0] === 0x1f && body[1] === 0x8b;
+  const xml = (gzipped ? gunzipSync(body) : body).toString('utf-8');
+  return [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1].trim()).filter((u) => CLIMBING_SLUG.test(decodeURIComponent(u)));
 }

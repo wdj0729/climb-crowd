@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { daangnSearchUrl, parseDaangnGroup, parseDaangnSearch, type DaangnRegion } from '@/scraper/daangn/parse';
+import { daangnSearchUrl, parseDaangnGroup, parseDaangnSearch, parseGroupSitemap, type DaangnRegion } from '@/scraper/daangn/parse';
 import { SEOUL_DISTRICTS } from '@/scraper/somoim/districts';
 import regions from '@/scraper/daangn/regions.json';
 import { fixture } from './helpers/fixture';
@@ -62,5 +62,19 @@ describe('Seoul region ids', () => {
     expect(list).toEqual(expect.arrayContaining([
       { name: '강남구', id: 381 }, { name: '서초구', id: 362 }, { name: '관악구', id: 340 }, { name: '강서구', id: 257 },
     ]));
+  });
+});
+
+describe('daangn group sitemap', () => {
+  const xml = `<urlset><url><loc>https://www.daangn.com/kr/group/%ED%81%B4%EB%9D%BC%EC%9D%B4%EB%B0%8D-%EB%AA%A8%EC%9E%84-abc/</loc></url>
+    <url><loc>https://www.daangn.com/kr/group/%EB%B3%BC%EB%A7%81-xyz/</loc></url></urlset>`;
+
+  it('reads climbing groups from a gzipped sitemap', async () => {
+    const { gzipSync } = await import('node:zlib');
+    expect(parseGroupSitemap(gzipSync(xml))).toEqual(['https://www.daangn.com/kr/group/%ED%81%B4%EB%9D%BC%EC%9D%B4%EB%B0%8D-%EB%AA%A8%EC%9E%84-abc/']);
+  });
+
+  it('reads an already-decompressed sitemap', () => {
+    expect(parseGroupSitemap(Buffer.from(xml))).toHaveLength(1);
   });
 });
