@@ -48,9 +48,21 @@ describe('matchGym', () => {
     expect(match({ placeText: '피커스클라이밍신촌', title: '신촌해변', placeLat: 37.5565639285478, placeLon: 126.940328119434 })).toBe('peakers-sinchon');
   });
 
-  it('matches by coordinates alone within 150m', () => {
+  it('matches by coordinates when the meetup mentions climbing', () => {
     const g = GYMS.find((x) => x.id === 'theclimb-mullae')!;
-    expect(match({ placeText: '아무이름', title: 'x', placeLat: g.lat + 0.0005, placeLon: g.lon })).toBe('theclimb-mullae');
+    expect(match({ placeText: '아무이름', title: '저녁 클밍', placeLat: g.lat + 0.0005, placeLon: g.lon })).toBe('theclimb-mullae');
+    expect(match({ placeText: '아무이름', title: '볼더링 같이해요', placeLat: g.lat + 0.0005, placeLon: g.lon })).toBe('theclimb-mullae');
+  });
+
+  it('ignores a nearby place tag for a non-climbing meetup', () => {
+    const g = GYMS.find((x) => x.id === 'theclimb-sillim')!;
+    expect(match({ placeText: '원조민속순대타운', title: '신림하면 순대 먹부림', placeLat: g.lat + 0.0005, placeLon: g.lon })).toBeNull();
+  });
+
+  it('prefers an admin alias over coordinates', () => {
+    const g = GYMS.find((x) => x.id === 'theclimb-mullae')!;
+    expect(match({ placeText: '문래 클라이밍장', title: '클밍', placeLat: g.lat, placeLon: g.lon }, { [normalize('문래 클라이밍장')]: 'seoulforest-yeongdeungpo' }))
+      .toBe('seoulforest-yeongdeungpo');
   });
 
   it('does not guess a branch for a multi-branch brand', () => {

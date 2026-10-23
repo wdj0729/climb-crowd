@@ -82,16 +82,15 @@ function findIn(texts: string[], candidates: Candidate[]): string | null {
   return null;
 }
 
+// Words that show a meetup is about climbing; a nearby place tag alone isn't enough (central Seoul is dense).
+const CLIMBING_WORDS = /클라이밍|클밍|볼더|암장|암벽|클라임|climb|boulder/;
+
 export function matchGym(
   input: { placeText: string | null; title: string; placeLat: number | null; placeLon: number | null },
   gyms: Gym[],
   brands: Brand[],
   extra: Record<string, string> = {},
 ): string | null {
-  if (input.placeLat != null && input.placeLon != null) {
-    const near = nearestGym(input.placeLat, input.placeLon, gyms);
-    if (near) return near;
-  }
   const texts = [input.placeText, input.title].filter((t): t is string => !!t).map(normalize);
   for (const t of texts) if (extra[t]) return extra[t];
 
@@ -100,6 +99,13 @@ export function matchGym(
     index = buildIndex(gyms, brands);
     indexCache.set(gyms, index);
   }
+  const byText = findIn(texts, index.primary);
+  if (byText) return byText;
+
+  if (input.placeLat != null && input.placeLon != null && texts.some((t) => CLIMBING_WORDS.test(t))) {
+    const near = nearestGym(input.placeLat, input.placeLon, gyms);
+    if (near) return near;
+  }
   const placeText = input.placeText ? [normalize(input.placeText)] : [];
-  return findIn(texts, index.primary) ?? findIn(texts, index.soloBrand) ?? findIn(placeText, index.place);
+  return findIn(texts, index.soloBrand) ?? findIn(placeText, index.place);
 }
