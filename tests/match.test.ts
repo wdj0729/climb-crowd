@@ -65,6 +65,18 @@ describe('matchGym', () => {
     expect(match({ placeText: '버티고클라이밍짐', title: '정모' })).toBe('버티고클라이밍짐');
   });
 
+  it('accepts the common 더클라이밍 misspelling', () => {
+    expect(match({ placeText: '더클라이밍 문래점', title: '정모' })).toBe('theclimb-mullae');
+  });
+
+  it('matches an unbranded gym by its short name in the place text', () => {
+    expect(match({ placeText: '노원 드림캐처', title: '정모' })).toBe('드림캐처클라이밍짐');
+  });
+
+  it('does not match short gym names inside titles', () => {
+    expect(match({ title: '위클리 정모' })).toBeNull();
+  });
+
   it('rejects non-climbing meetups', () => {
     expect(match({ placeText: '석촌 푸른하늘', title: '토요일 보드게임 모임 😇🤗🎲☄️' })).toBeNull();
     expect(match({ placeText: '공지', title: '할로윈 🎃 보드게임 나이트 👻' })).toBeNull();

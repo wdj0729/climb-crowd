@@ -13,6 +13,8 @@ export interface Gym {
   branch: string | null;
   branchAliases: string[];
   extraAliases: string[];
+  /** Short names (e.g. 드림캐처) trusted only in a meetup's place field, not its title. */
+  placeAliases: string[];
   address: string;
   lat: number;
   lon: number;
@@ -21,7 +23,7 @@ export interface Gym {
 }
 
 export const BRANDS: Brand[] = [
-  { id: 'theclimb', name: '더클라임', aliases: ['더클라임', '더클', 'theclimb'] },
+  { id: 'theclimb', name: '더클라임', aliases: ['더클라임', '더클라이밍', '더클', 'theclimb'] },
   { id: 'climbingpark', name: '클라이밍파크', aliases: ['클라이밍파크', '클팍', 'climbingpark'] },
   { id: 'seoulforest', name: '서울숲클라이밍', aliases: ['서울숲클라이밍', '서울숲'] },
   { id: 'peakers', name: '피커스', aliases: ['피커스클라이밍', '피커스', 'peakers'] },
@@ -55,6 +57,15 @@ interface SeedRow {
   source: string;
 }
 
+const NAME_SUFFIX = /\s*(클라이밍\s*짐|클라이밍\s*센터|클라이밍)$/;
+const MIN_SHORT_NAME = 3;
+
+function shortName(g: SeedRow): string[] {
+  if (g.brandId) return [];
+  const short = g.name.replace(NAME_SUFFIX, '').trim();
+  return short !== g.name && short.length >= MIN_SHORT_NAME ? [short] : [];
+}
+
 // Generated from holday.rocks (Seoul section, each gym's JSON-LD address and coordinates).
 export const GYMS: Gym[] = (seoulGyms as SeedRow[]).map((g) => ({
   id: g.id,
@@ -63,6 +74,7 @@ export const GYMS: Gym[] = (seoulGyms as SeedRow[]).map((g) => ({
   branch: g.branch,
   branchAliases: g.branch ? [g.branch] : [],
   extraAliases: [g.name],
+  placeAliases: shortName(g),
   address: g.address,
   lat: g.lat,
   lon: g.lon,

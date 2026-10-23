@@ -20,6 +20,8 @@ interface Index {
   primary: Candidate[];
   /** Bare aliases of brands that have exactly one branch. */
   soloBrand: Candidate[];
+  /** Short gym names, only trusted in the place field. */
+  place: Candidate[];
 }
 
 const indexCache = new WeakMap<Gym[], Index>();
@@ -31,7 +33,9 @@ function buildIndex(gyms: Gym[], brands: Brand[]): Index {
 
   const primary: Candidate[] = [];
   const soloBrand: Candidate[] = [];
+  const place: Candidate[] = [];
   for (const g of gyms) {
+    for (const alias of g.placeAliases) place.push({ text: normalize(alias), gymId: g.id });
     const brand = g.brandId ? brandById.get(g.brandId) : undefined;
     const brandAliases = brand ? brand.aliases.map(normalize) : [];
     for (const alias of g.extraAliases) primary.push({ text: normalize(alias), gymId: g.id });
@@ -45,7 +49,11 @@ function buildIndex(gyms: Gym[], brands: Brand[]): Index {
     }
   }
   const longestFirst = (a: Candidate, b: Candidate) => b.text.length - a.text.length;
-  return { primary: primary.filter((c) => c.text).sort(longestFirst), soloBrand: soloBrand.sort(longestFirst) };
+  return {
+    primary: primary.filter((c) => c.text).sort(longestFirst),
+    soloBrand: soloBrand.sort(longestFirst),
+    place: place.filter((c) => c.text).sort(longestFirst),
+  };
 }
 
 function distanceM(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -92,5 +100,6 @@ export function matchGym(
     index = buildIndex(gyms, brands);
     indexCache.set(gyms, index);
   }
-  return findIn(texts, index.primary) ?? findIn(texts, index.soloBrand);
+  const placeText = input.placeText ? [normalize(input.placeText)] : [];
+  return findIn(texts, index.primary) ?? findIn(texts, index.soloBrand) ?? findIn(placeText, index.place);
 }
