@@ -2,16 +2,27 @@
 
 import { useState } from 'react';
 import { normalize } from '@/lib/gyms/match';
-import { GYMS } from '@/lib/gyms/seed';
+import { GYMS, type Gym } from '@/lib/gyms/seed';
 
 const MAX_RESULTS = 30;
+
+// Brands the crew uses most, shown first and in this order.
+const FEATURED_BRANDS = ['theclimb', 'seoulforest', 'sonsangwon', 'climbingpark', 'peakers'];
+
+function rank(g: Gym): number {
+  const i = g.brandId ? FEATURED_BRANDS.indexOf(g.brandId) : -1;
+  return i < 0 ? FEATURED_BRANDS.length : i;
+}
+
+const ORDERED = [...GYMS].sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name, 'ko'));
+const FEATURED = ORDERED.filter((g) => rank(g) < FEATURED_BRANDS.length);
 
 export function GymPicker(props: { favorites: string[]; onToggle(gymId: string): void }) {
   const [query, setQuery] = useState('');
   const q = normalize(query);
   const results = q
-    ? GYMS.filter((g) => normalize(`${g.name} ${g.address}`).includes(q)).slice(0, MAX_RESULTS)
-    : GYMS.filter((g) => props.favorites.includes(g.id));
+    ? ORDERED.filter((g) => normalize(`${g.name} ${g.address}`).includes(q)).slice(0, MAX_RESULTS)
+    : [...ORDERED.filter((g) => props.favorites.includes(g.id) && rank(g) === FEATURED_BRANDS.length), ...FEATURED];
   return (
     <div className="space-y-2">
       <input
