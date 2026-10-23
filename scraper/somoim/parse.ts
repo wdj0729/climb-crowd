@@ -27,6 +27,8 @@ export function parseSomoimGroup(html: string, groupId: string): { group: RawGro
   const group: RawGroup = { source: 'somoim', externalId: groupId, name: $('h1').first().text().trim(), url };
 
   const heading = $('h2').filter((_, el) => $(el).text().trim().startsWith('정모 일정')).first();
+  // Every real group page has this heading, even with no meetups; without it we got some other page.
+  if (!heading.length) throw new Error('no 정모 일정 section on the page');
   const cards = heading.next().children('div');
   // The thumbnail is named {groupId}{YYYYMMDDHHmm}s{n}.png in KST; the visible date is relative ("내일").
   const stamp = new RegExp(`${groupId}(\\d{4})(\\d{2})(\\d{2})(\\d{2})(\\d{2})s\\d+\\.png`);

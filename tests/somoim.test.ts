@@ -55,3 +55,9 @@ describe('somoim group page', () => {
     ]);
   });
 });
+
+describe('somoim page sanity', () => {
+  it('throws on a page without the meetup section instead of reporting zero meetups', () => {
+    expect(() => parseSomoimGroup('<html><body><h1>점검 중</h1></body></html>', 'x')).toThrow(/정모 일정/);
+  });
+});

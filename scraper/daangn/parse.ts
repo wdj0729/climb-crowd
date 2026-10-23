@@ -72,6 +72,8 @@ export function parseDaangnGroup(html: string, url: string): { group: RawGroup; 
   const name = title.replace(/ \| [^|]*당근 모임$/, '').trim();
   const group: RawGroup = { source: 'daangn', externalId: groupId, name, url };
 
+  // Real group pages always embed the group object; without it we got some other page (bot check, outage).
+  if (!html.includes('"__typename":"CommunityGroup"')) throw new Error('no group data on the page');
   const key = '"meetups":';
   const at = html.indexOf(key);
   if (at < 0) return { group, meetups: [] };

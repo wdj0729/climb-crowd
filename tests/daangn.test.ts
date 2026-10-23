@@ -78,3 +78,14 @@ describe('daangn group sitemap', () => {
     expect(parseGroupSitemap(Buffer.from(xml))).toHaveLength(1);
   });
 });
+
+describe('daangn page sanity', () => {
+  it('throws on a page that is not a group page', () => {
+    expect(() => parseDaangnGroup('<html><body>잠시 후 다시 시도해 주세요</body></html>', GROUP_URL)).toThrow(/group data/);
+  });
+
+  it('reads a real group without meetups as empty', () => {
+    const html = fixture('daangn-group-climbing.html').replace(/"meetups":\[[\s\S]*?"CommunityGroupMeetup"\}\]/, '"meetups":[]');
+    expect(parseDaangnGroup(html, GROUP_URL).meetups).toEqual([]);
+  });
+});
