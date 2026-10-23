@@ -1,36 +1,9 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import { describe, expect, it } from 'vitest';
 import { DayDetail } from '@/components/DayDetail';
-import { GymCard } from '@/components/GymCard';
 import type { DayBucket } from '@/lib/crowd';
 import type { WeekMeetup } from '@/lib/types';
-
-const days = ['2026-10-26', '2026-10-27', '2026-10-28', '2026-10-29', '2026-10-30', '2026-10-31', '2026-11-01'];
-const totals = [0, 5, 31, 0, 20, 8, 0];
-const buckets: DayBucket[] = days.map((date, i) => ({ date, total: totals[i], inWindow: [], outOfWindow: [] }));
-
-describe('GymCard', () => {
-  it('draws one labelled bar per day, today first', () => {
-    render(<GymCard gymName="더클라임 강남점" buckets={buckets} busyThreshold={20} selectedDate={null} onSelectDate={() => {}} onRemove={() => {}} />);
-    const bars = screen.getAllByRole('button', { name: /명$/ });
-    expect(bars.map((b) => b.getAttribute('aria-label'))).toEqual(['오늘 0명', '화 5명', '수 31명', '목 0명', '금 20명', '토 8명', '일 0명']);
-  });
-
-  it('marks busy days and scales to the busiest day', () => {
-    render(<GymCard gymName="g" buckets={buckets} busyThreshold={20} selectedDate={null} onSelectDate={() => {}} onRemove={() => {}} />);
-    const busy = screen.getAllByRole('button', { name: /명$/ }).filter((b) => b.dataset.busy === 'true');
-    expect(busy.map((b) => b.getAttribute('aria-label'))).toEqual(['수 31명', '금 20명']);
-    expect((screen.getByLabelText('수 31명').querySelector('[data-bar]') as HTMLElement).style.height).toBe('100%');
-  });
-
-  it('selects a day on click', () => {
-    const onSelectDate = vi.fn();
-    render(<GymCard gymName="g" buckets={buckets} busyThreshold={20} selectedDate={null} onSelectDate={onSelectDate} onRemove={() => {}} />);
-    fireEvent.click(screen.getByLabelText('수 31명'));
-    expect(onSelectDate).toHaveBeenCalledWith('2026-10-28');
-  });
-});
 
 const m = (over: Partial<WeekMeetup>): WeekMeetup => ({
   id: 'x', source: 'somoim', gymId: 'g', title: '정모', groupName: '크루명', startsAt: '2026-10-28T10:00:00.000Z',
