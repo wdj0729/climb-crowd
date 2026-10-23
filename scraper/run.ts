@@ -7,7 +7,7 @@ import type { RawGroup, RawMeetup, Source } from '@/lib/types';
 import { daangnSearchUrl, parseDaangnGroup, parseDaangnSearch, type DaangnRegion } from './daangn/parse';
 import regions from './daangn/regions.json';
 import { BROWSER_UA, createFetcher, type Fetcher } from './http';
-import { parseSomoimGroup, parseSomoimSearch, SEOUL_DISTRICTS, somoimSearchUrl } from './somoim/parse';
+import { parseSomoimGroup, parseSomoimSearch, SOMOIM_KEYWORDS, somoimSearchUrl } from './somoim/parse';
 
 export interface ScrapeStats {
   source: Source;
@@ -92,8 +92,8 @@ export async function runScrape(deps: Deps): Promise<ScrapeStats[]> {
   const somoim: SourcePlan = {
     source: 'somoim',
     fetcher: deps.somoim,
-    searches: SEOUL_DISTRICTS.map((d) => ({
-      url: somoimSearchUrl(d),
+    searches: SOMOIM_KEYWORDS.map((k) => ({
+      url: somoimSearchUrl(k),
       groups: (html) => parseSomoimSearch(html).map((id) => `https://www.somoim.co.kr/${id}`),
     })),
     extraGroups: async () => [],

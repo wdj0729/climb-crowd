@@ -4,7 +4,7 @@ import { daangnSearchUrl } from '@/scraper/daangn/parse';
 import regions from '@/scraper/daangn/regions.json';
 import type { Fetcher } from '@/scraper/http';
 import { runScrape } from '@/scraper/run';
-import { somoimSearchUrl } from '@/scraper/somoim/parse';
+import { SOMOIM_KEYWORDS, somoimSearchUrl } from '@/scraper/somoim/parse';
 import { fixture } from './helpers/fixture';
 import { testDb } from './helpers/pglite';
 
@@ -34,8 +34,8 @@ function fakeFetcher(pages: Record<string, string | Error>, fallback = '<html></
 
 function fakes() {
   const somoim = fakeFetcher({
-    [somoimSearchUrl('마포구')]: somoimSearch,
-    [somoimSearchUrl('강남구')]: somoimSearch,
+    [somoimSearchUrl(SOMOIM_KEYWORDS[0])]: somoimSearch,
+    [somoimSearchUrl(SOMOIM_KEYWORDS[1])]: somoimSearch,
     [`https://www.somoim.co.kr/${CLIMB}`]: fixture('somoim-group-climb.html'),
     [`https://www.somoim.co.kr/${BOARD}`]: fixture('somoim-group-boardgame.html'),
     [`https://www.somoim.co.kr/${EMPTY}`]: fixture('somoim-group-empty.html'),
@@ -62,6 +62,7 @@ describe('runScrape', () => {
     expect([...counts.values()].every((n) => n === 1)).toBe(true);
     expect(somoim.calls).toContain(`https://www.somoim.co.kr/${CLIMB}`);
     expect(daangn.calls).toContain(DAANGN_GROUP);
+    expect(somoim.calls.filter((c) => c.includes('/groups/search/'))).toHaveLength(SOMOIM_KEYWORDS.length);
   });
 
   it('stores matched and unmatched meetups and keeps going past a broken group', async () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseSomoimGroup, parseSomoimSearch, SEOUL_DISTRICTS, somoimSearchUrl } from '@/scraper/somoim/parse';
+import { parseSomoimGroup, parseSomoimSearch, SEOUL_DISTRICTS, SOMOIM_KEYWORDS, somoimSearchUrl } from '@/scraper/somoim/parse';
 import { fixture } from './helpers/fixture';
 
 const CLIMB_ID = '01bc91bf-acf3-46ff-a23d-f394c572d6341';
@@ -11,8 +11,9 @@ describe('somoim search', () => {
     expect(SEOUL_DISTRICTS).toContain('중랑구');
   });
 
-  it('builds the district search url', () => {
-    expect(decodeURI(somoimSearchUrl('마포구'))).toBe('https://www.somoim.co.kr/groups/search/서울특별시/마포구/클라이밍');
+  it('builds a keyword search url (the district part is ignored by Somoim, so one fixed district is used)', () => {
+    expect(decodeURI(somoimSearchUrl('클라이밍'))).toBe('https://www.somoim.co.kr/groups/search/서울특별시/마포구/클라이밍');
+    expect(SOMOIM_KEYWORDS).toEqual(['클라이밍', '클라이밍크루', '실내클라이밍', '볼더']);
   });
 
   it('extracts unique group ids', () => {

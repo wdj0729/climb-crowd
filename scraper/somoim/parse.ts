@@ -6,8 +6,12 @@ export { SEOUL_DISTRICTS } from './districts';
 
 const BASE = 'https://www.somoim.co.kr';
 
-export function somoimSearchUrl(district: string): string {
-  return `${BASE}/groups/search/${encodeURIComponent('서울특별시')}/${encodeURIComponent(district)}/${encodeURIComponent('클라이밍')}`;
+// Somoim's web search ignores the district segment and returns the same ~100 groups for any district,
+// so we search a few keywords instead. 볼더링/클밍/암장 return exactly the 클라이밍 list and are left out.
+export const SOMOIM_KEYWORDS = ['클라이밍', '클라이밍크루', '실내클라이밍', '볼더'];
+
+export function somoimSearchUrl(keyword: string): string {
+  return `${BASE}/groups/search/${encodeURIComponent('서울특별시')}/${encodeURIComponent('마포구')}/${encodeURIComponent(keyword)}`;
 }
 
 /** Group links look like /{uuid}{digit}. */
