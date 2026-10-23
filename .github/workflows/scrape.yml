@@ -1,3 +1,4 @@
+# Collects Somoim and Daangn climbing meetups into Neon (see README).
 name: scrape
 
 on:
